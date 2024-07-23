@@ -1353,6 +1353,12 @@ class Kconfig(object):
 
                 sym.set_value(val)
 
+                if val != sym.str_value:
+                    self._warn("{} was assigned the value '{}', but got the "
+                             "value '{}'. Check the symbol's dependencies, and make "
+                             "sure that it has a prompt."
+                             .format(name, val, sym.str_value))
+
         if replace:
             # If we're replacing the configuration, unset the symbols that
             # didn't get set
@@ -3972,13 +3978,15 @@ class Kconfig(object):
         if not self.warn:
             return
 
-        msg = "warning: " + msg
+        prefix = "error: " if self.warn_to_stderr else "warning: "
+        msg = prefix + msg
         if filename is not None:
             msg = "{}:{}: {}".format(filename, linenr, msg)
 
         self.warnings.append(msg)
         if self.warn_to_stderr:
             sys.stderr.write(msg + "\n")
+            sys.exit(1)
 
 
 class Symbol(object):
@@ -4869,6 +4877,8 @@ class Symbol(object):
             # Invalidating MODULES has wide-ranging effects
             self.kconfig._invalidate_all()
         else:
+            # print(self)
+            # print("invalidated")
             self._invalidate()
 
             for item in self._dependents:
