@@ -4877,8 +4877,6 @@ class Symbol(object):
             # Invalidating MODULES has wide-ranging effects
             self.kconfig._invalidate_all()
         else:
-            # print(self)
-            # print("invalidated")
             self._invalidate()
 
             for item in self._dependents:
