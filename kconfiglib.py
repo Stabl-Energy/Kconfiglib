@@ -1265,6 +1265,7 @@ class Kconfig(object):
             set_match = self._set_match
             unset_match = self._unset_match
             get_sym = self.syms.get
+            desired_vals = []
 
             for linenr, line in enumerate(f, 1):
                 # The C tools ignore trailing whitespace
@@ -1273,6 +1274,7 @@ class Kconfig(object):
                 match = set_match(line)
                 if match:
                     name, val = match.groups()
+                    desired_vals.append((name, val))
                     sym = get_sym(name)
                     if not sym or not sym.nodes:
                         self._undef_assign(name, val, filename, linenr)
@@ -1353,12 +1355,6 @@ class Kconfig(object):
 
                 sym.set_value(val)
 
-                if val != sym.str_value:
-                    self._warn("{} was assigned the value '{}', but got the "
-                             "value '{}'. Check the symbol's dependencies, and make "
-                             "sure that it has a prompt."
-                             .format(name, val, sym.str_value))
-
         if replace:
             # If we're replacing the configuration, unset the symbols that
             # didn't get set
@@ -1370,6 +1366,15 @@ class Kconfig(object):
             for choice in self.unique_choices:
                 if not choice._was_set:
                     choice.unset_value()
+
+        syms_to_be_written = dict(map (lambda s: (s.name, s.str_value), self.unique_defined_syms))
+        for (name, val) in desired_vals:
+            if name in syms_to_be_written.keys() and (syms_to_be_written[name] != val.strip('"')):
+                self._warn("{} was assigned the value '{}', but got the "
+                    "value '{}'. Check the symbol's dependencies, and make "
+                    "sure that it has a prompt."
+                    .format(name, val, syms_to_be_written[name]))
+
 
     def _undef_assign(self, name, val, filename, linenr):
         # Called for assignments to undefined symbols during .config loading
